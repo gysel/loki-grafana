@@ -1,0 +1,51 @@
+version: "3"
+
+networks:
+  loki:
+
+services:
+  loki:
+    image: grafana/loki:1.5.0
+    volumes:
+      - ./loki/config.yml:/etc/loki/config.yml
+      - loki:/loki
+    expose: 
+      - 3100
+    ports:
+      - "127.0.0.1:3100:3100"
+    command: -config.file=/etc/loki/config.yml
+    networks:
+      - loki
+
+  promtail:
+    image: grafana/promtail:1.5.0
+    volumes:
+      - /var/log:/var/log
+      - promtail:/opt/positions
+      - ./promtail/config/config.yml:/etc/promtail/config.yaml
+    command: -config.file=/etc/promtail/config.yaml
+    networks:
+      - loki
+#tag::loki-logging-driver[]
+  grafana:
+    image: grafana/grafana:7.1.0
+    logging:
+      driver: loki
+      options:
+        loki-url: http://localhost:3100/loki/api/v1/push
+#end::loki-logging-driver[]
+    volumes:
+      - grafana:/var/lib/grafana
+      - ./grafana/datasource.yml:/etc/grafana/provisioning/datasources/datasource.yml
+    ports:
+      - "127.0.0.1:3000:3000"
+    networks:
+      - loki
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: secret
+
+volumes:
+  grafana:
+  promtail:
+  loki:
